@@ -6,8 +6,8 @@ This repository contains my versions of the filter/adsr/lfo and programmer secti
 
 ## Key features
 
-- Digitally controlled analog oscillator using a Raspberry Pi Pico
-- Multipole filter based on the Oberheim Matrix 12
+- Digitally controlled analog oscillators using dual Raspberry Pi Pico's
+- Multipole filters based on the Oberheim Matrix 12
 - Dual LFOs for PWM and main synth
 - 6 voice polyphonic dual DCOs per voice
 - Analogue chorus
