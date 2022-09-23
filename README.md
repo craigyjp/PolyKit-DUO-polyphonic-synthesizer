@@ -4,7 +4,7 @@ Based on the PolyKit DCO and PolyKit-x-voice board projects by PolyKit (Jan Knip
 
 This repository contains my versions of the filter/adsr/lfo and programmer section for the Polykit DUO, the DCO and MIDI sections are available in my other repositories listed below.
 
-![Synth](photos/20220909_180527.jpg)
+![Synth](photos/synth.jpg)
 
 ## Key features
 
