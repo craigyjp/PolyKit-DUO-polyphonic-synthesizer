@@ -19,7 +19,7 @@ This repository contains my versions of the filter/adsr/lfo with added velocity,
 
 ## The source of the inspiration for these modifications and acknowledgements
 
-Pico DCO also known as Jan Knipper
+Polykit, also known as Jan Knipper
 
 https://github.com/polykit/pico-dco
 
