@@ -2,7 +2,7 @@
 
 Based on the PolyKit DCO and PolyKit-x-voice board projects by PolyKit (Jan Knipper). This design takes Jan's work and expands it into a fully programmable 6 voice DCO based synthesizer. 
 
-This repository contains my versions of the filter/adsr/lfo and programmer section for the Polykit DUO, the DCO and MIDI sections are available in my other repositories listed below.
+This repository contains my versions of the filter/adsr/lfo with added velocity, keytracking and additional 8 filter configurations and programmer section for the Polykit DUO, the DCO and MIDI sections are available in my other repositories listed below.
 
 ![Synth](photos/synth.jpg)
 
