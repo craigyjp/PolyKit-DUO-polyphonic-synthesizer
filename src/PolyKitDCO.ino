@@ -1080,10 +1080,78 @@ void myControlChange(byte channel, byte control, int value)
       break;
 
     case CCmodwheel:
-      modWheelLevel = value / modWheelDepth;
-      Serial.print("Modwheel ");
-      Serial.println(int(modWheelLevel));
-      fmDepth = (int(modWheelLevel));
+      switch (modWheelDepth)
+      {
+        case 1:
+          modWheelLevel = ((value * 8) / 5);
+          fmDepth = (int(modWheelLevel));
+          Serial.print("ModWheel Depth ");
+          Serial.println(modWheelLevel);
+          break;
+
+        case 2:
+          modWheelLevel = ((value * 8) / 4);
+          fmDepth = (int(modWheelLevel));
+          Serial.print("ModWheel Depth ");
+          Serial.println(modWheelLevel);
+          break;
+
+        case 3:
+          modWheelLevel = ((value * 8) / 3.5);
+          fmDepth = (int(modWheelLevel));
+          Serial.print("ModWheel Depth ");
+          Serial.println(modWheelLevel);
+          break;
+
+        case 4:
+          modWheelLevel = ((value * 8) / 3);
+          fmDepth = (int(modWheelLevel));
+          Serial.print("ModWheel Depth ");
+          Serial.println(modWheelLevel);
+          break;
+
+        case 5:
+          modWheelLevel = ((value * 8) / 2.5);
+          fmDepth = (int(modWheelLevel));
+          Serial.print("ModWheel Depth ");
+          Serial.println(modWheelLevel);
+          break;
+
+        case 6:
+          modWheelLevel = ((value * 8) / 2);
+          fmDepth = (int(modWheelLevel));
+          Serial.print("ModWheel Depth ");
+          Serial.println(modWheelLevel);
+          break;
+
+        case 7:
+          modWheelLevel = ((value * 8) / 1.75);
+          fmDepth = (int(modWheelLevel));
+          Serial.print("ModWheel Depth ");
+          Serial.println(modWheelLevel);
+          break;
+
+        case 8:
+          modWheelLevel = ((value * 8) / 1.5);
+          fmDepth = (int(modWheelLevel));
+          Serial.print("ModWheel Depth ");
+          Serial.println(modWheelLevel);
+          break;
+
+        case 9:
+          modWheelLevel = ((value * 8) / 1.25);
+          fmDepth = (int(modWheelLevel));
+          Serial.print("ModWheel Depth ");
+          Serial.println(modWheelLevel);
+          break;
+
+        case 10:
+          modWheelLevel = (value * 8);
+          fmDepth = (int(modWheelLevel));
+          Serial.print("ModWheel Depth ");
+          Serial.println(modWheelLevel);
+          break;
+      }
       break;
 
     case CCallnotesoff:
