@@ -1081,6 +1081,8 @@ void myControlChange(byte channel, byte control, int value)
 
     case CCmodwheel:
       modWheelLevel = value / modWheelDepth;
+      Serial.print("Modwheel ");
+      Serial.println(int(modWheelLevel));
       fmDepth = (int(modWheelLevel));
       break;
 
@@ -1495,13 +1497,13 @@ void writeDemux()
       analogWrite(A21, int(filterCutoff));
       break;
     case 13:
-      analogWrite(A21, int(filterRes));
+      analogWrite(A21, int(filterRes / 2.5));
       break;
     case 14:
       analogWrite(A21, int(filterCutoff));
       break;
     case 15:
-      analogWrite(A21, int(filterRes));
+      analogWrite(A21, int(filterRes / 2.5));
       break;
   }
   delayMicroseconds(DelayForSH3);
