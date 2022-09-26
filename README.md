@@ -8,13 +8,21 @@ This repository contains my versions of the filter/adsr/lfo with added velocity,
 
 ## Key features
 
-- Digitally controlled analog oscillators using dual Raspberry Pi Pico's
+- Digitally controlled oscillators similar in design to the Roland Juno series using dual Raspberry Pi Pico's
 - Multipole filters based on the Oberheim Matrix 12
 - Dual LFOs for PWM and main synth
 - 6 voice polyphonic dual DCOs per voice
 - Analogue chorus
 - 999 memory locations to store patches
 - MIDI in/out/thru - channels 1-10 only
+
+## Things to fix/improve
+
+- MIDI channel should be set by the programmer, currently the midi router on the rear can change the midi channel.
+
+- Add external filter in and maybe a gate and CV for filter one only.
+
+- Add a midi input light, currently I only have gate lights.
 
 
 ## The source of the inspiration for these modifications and acknowledgements
