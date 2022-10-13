@@ -20,10 +20,7 @@ This repository contains my versions of the filter/adsr/lfo with added velocity,
 
 - MIDI channel should be set by the programmer, currently the midi router on the rear can change the midi channel.
 
-- Add external filter in and maybe a gate and CV for filter one only.
-
-- Add a midi input light, currently I only have gate lights.
-
+- Add aftertouch to filter and LFO etc
 
 ## The source of the inspiration for these modifications and acknowledgements
 
