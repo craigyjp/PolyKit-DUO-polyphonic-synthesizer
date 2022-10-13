@@ -47,7 +47,7 @@ void settingsMIDICh(char * value) {
 //}
 //
 void settingsModWheelDepth(char * value) {
-  modWheelDepth = atoi(value) / 10.0f;
+  modWheelDepth = atoi(value);
   storeModWheelDepth(modWheelDepth);
 }
 
@@ -82,7 +82,7 @@ int currentIndexMIDICh() {
 //}
 //
 int currentIndexModWheelDepth() {
-  return (getModWheelDepth() * 10) - 1;
+  return (getModWheelDepth()) - 1;
 }
 
 int currentIndexEncoderDir() {

@@ -96,8 +96,8 @@ int filterLoop = 0;
 int filterEGinv = 0;
 int PitchBendLevel = 0;
 int PitchBendLevelstr = 0; // for display
-float modWheelDepth = 0;
-float modWheelLevel = 1023;
+int modWheelDepth = 0;
+float modWheelLevel = 0;
 float modWheelLevelstr = 0;
 int linLog = 0;
 

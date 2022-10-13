@@ -32,16 +32,16 @@
 #include <ShiftRegister74HC595.h>
 //#include <RoxMux.h>
 
-#define PARAMETER 0 //The main page for displaying the current patch and control (parameter) changes
-#define RECALL 1 //Patches list
-#define SAVE 2 //Save patch page
-#define REINITIALISE 3 // Reinitialise message
-#define PATCH 4 // Show current patch bypassing PARAMETER
-#define PATCHNAMING 5 // Patch naming page
-#define DELETE 6 //Delete patch page
-#define DELETEMSG 7 //Delete patch message page
-#define SETTINGS 8 //Settings page
-#define SETTINGSVALUE 9 //Settings page
+#define PARAMETER 0      //The main page for displaying the current patch and control (parameter) changes
+#define RECALL 1         //Patches list
+#define SAVE 2           //Save patch page
+#define REINITIALISE 3   // Reinitialise message
+#define PATCH 4          // Show current patch bypassing PARAMETER
+#define PATCHNAMING 5    // Patch naming page
+#define DELETE 6         //Delete patch page
+#define DELETEMSG 7      //Delete patch message page
+#define SETTINGS 8       //Settings page
+#define SETTINGSVALUE 9  //Settings page
 
 unsigned int state = PARAMETER;
 
@@ -57,14 +57,14 @@ MIDIDevice midi1(myusb);
 
 
 //MIDI 5 Pin DIN
-MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI); //RX - Pin 0
+MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);  //RX - Pin 0
 
 
-int count = 0;//For MIDI Clk Sync
+int count = 0;  //For MIDI Clk Sync
 int DelayForSH3 = 30;
 int patchNo = 0;
-int voiceToReturn = -1; //Initialise
-long earliestTime = millis(); //For voice allocation - initialise to now
+int voiceToReturn = -1;        //Initialise
+long earliestTime = millis();  //For voice allocation - initialise to now
 unsigned long buttonDebounce = 0;
 
 //#define MUX_TOTAL 3
@@ -77,28 +77,23 @@ unsigned long buttonDebounce = 0;
 
 ShiftRegister74HC595<3> sr(44, 45, 46);
 
-void setup()
-{
+void setup() {
   SPI.begin();
   setupDisplay();
   setUpSettings();
   setupHardware();
 
   cardStatus = SD.begin(BUILTIN_SDCARD);
-  if (cardStatus)
-  {
+  if (cardStatus) {
     Serial.println("SD card is connected");
     //Get patch numbers and names from SD card
     loadPatches();
-    if (patches.size() == 0)
-    {
+    if (patches.size() == 0) {
       //save an initialised patch to SD card
       savePatch("1", INITPATCH);
       loadPatches();
     }
-  }
-  else
-  {
+  } else {
     Serial.println("SD card is not connected or unusable");
     reinitialiseToPanel();
     showPatchPage("No SD", "conn'd / usable");
@@ -140,13 +135,12 @@ void setup()
   //Read Encoder Direction from EEPROM
   encCW = getEncoderDir();
   patchNo = getLastPatch();
-  recallPatch(patchNo); //Load first patch
+  recallPatch(patchNo);  //Load first patch
 
   //  reinitialiseToPanel();
 }
 
-void setVoltage(int dacpin, bool channel, bool gain, unsigned int mV)
-{
+void setVoltage(int dacpin, bool channel, bool gain, unsigned int mV) {
   int command = channel ? 0x9000 : 0x1000;
 
   command |= gain ? 0x0000 : 0x2000;
@@ -160,430 +154,342 @@ void setVoltage(int dacpin, bool channel, bool gain, unsigned int mV)
   SPI.endTransaction();
 }
 
-void allNotesOff()
-{
+void allNotesOff() {
 }
 
-void updatepwLFO()
-{
+void updatepwLFO() {
   showCurrentParameterPage("PWM Rate", int(pwLFOstr));
 }
 
-void updatefmDepth()
-{
+void updatefmDepth() {
   showCurrentParameterPage("FM Depth", int(fmDepthstr));
 }
 
-void updateosc2PW()
-{
+void updateosc2PW() {
   showCurrentParameterPage("OSC2 PW", String(osc2PWstr) + " %");
 }
 
-void updateosc2PWM()
-{
+void updateosc2PWM() {
   showCurrentParameterPage("OSC2 PWM", int(osc2PWMstr));
 }
 
-void updateosc1PW()
-{
+void updateosc1PW() {
   showCurrentParameterPage("OSC1 PW", String(osc1PWstr) + " %");
 }
 
-void updateosc1PWM()
-{
+void updateosc1PWM() {
   showCurrentParameterPage("OSC1 PWM", int(osc1PWMstr));
 }
 
-void updateosc1Range()
-{
-  if (osc1Range > 800)
-  {
+void updateosc1Range() {
+  if (osc1Range > 800) {
     showCurrentParameterPage("Osc1 Range", String("8"));
     oct1A = 0;
     oct1B = 1023;
-  }
-  else if (osc1Range < 800 && osc1Range > 100)
-  {
+  } else if (osc1Range < 800 && osc1Range > 100) {
     showCurrentParameterPage("Osc1 Range", String("16"));
     oct1A = 1023;
     oct1B = 1023;
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("Osc1 Range", String("32"));
     oct1A = 1023;
     oct1B = 0;
   }
 }
 
-void updateosc2Range()
-{
-  if (osc2Range > 800)
-  {
+void updateosc2Range() {
+  if (osc2Range > 800) {
     showCurrentParameterPage("Osc2 Range", String("8"));
     oct2A = 0;
     oct2B = 1023;
-  }
-  else if (osc2Range < 800 && osc2Range > 100)
-  {
+  } else if (osc2Range < 800 && osc2Range > 100) {
     showCurrentParameterPage("Osc2 Range", String("16"));
     oct2A = 1023;
     oct2B = 1023;
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("Osc2 Range", String("32"));
     oct2A = 1023;
     oct2B = 0;
   }
 }
 
-void updatestack()
-{
-  if (stack > 890)
-  {
+void updatestack() {
+  if (stack > 890) {
     showCurrentParameterPage("Voice Stack", String("6 Note"));
-  }
-  else if (stack < 890 && stack > 700)
-  {
+  } else if (stack < 890 && stack > 700) {
     showCurrentParameterPage("Voice Stack", String("5 Note"));
-  }
-  else if (stack < 700 && stack > 540)
-  {
+  } else if (stack < 700 && stack > 540) {
     showCurrentParameterPage("Voice Stack", String("4 Note"));
-  }
-  else if (stack < 540 && stack > 300)
-  {
+  } else if (stack < 540 && stack > 300) {
     showCurrentParameterPage("Voice Stack", String("3 Note"));
-  }
-  else if (stack < 300 && stack > 180)
-  {
+  } else if (stack < 300 && stack > 180) {
     showCurrentParameterPage("Voice Stack", String("2 Note"));
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("Voice Stack", String("Poly"));
   }
 }
 
-void updateglideTime()
-{
+void updateglideTime() {
   showCurrentParameterPage("Glide Time", String(glideTimestr * 10) + " Seconds");
 }
 
-void updateosc2Detune()
-{
+void updateosc2Detune() {
   showCurrentParameterPage("OSC2 Detune", String(osc2Detunestr));
 }
 
-void updatenoiseLevel()
-{
+void updatenoiseLevel() {
   showCurrentParameterPage("Noise Level", String(noiseLevelstr));
 }
 
-void updateOsc2SawLevel()
-{
+void updateOsc2SawLevel() {
   showCurrentParameterPage("OSC2 Saw", int(osc2SawLevelstr));
 }
 
-void updateOsc1SawLevel()
-{
+void updateOsc1SawLevel() {
   showCurrentParameterPage("OSC1 Saw", int(osc1SawLevelstr));
 }
 
-void updateosc2PulseLevel()
-{
+void updateosc2PulseLevel() {
   showCurrentParameterPage("OSC2 Pulse", int(osc2PulseLevelstr));
 }
 
-void updateOsc1PulseLevel()
-{
+void updateOsc1PulseLevel() {
   showCurrentParameterPage("OSC1 Pulse", int(osc1PulseLevelstr));
 }
 
-void updateFilterCutoff()
-{
+void updateFilterCutoff() {
   showCurrentParameterPage("Cutoff", String(filterCutoffstr) + " Hz");
 }
 
-void updatefilterLFO()
-{
+void updatefilterLFO() {
   showCurrentParameterPage("TM depth", int(filterLFOstr));
 }
 
-void updatefilterRes()
-{
+void updatefilterRes() {
   showCurrentParameterPage("Resonance", int(filterResstr));
 }
 
-void updateFilterType()
-{
-  if (filterType < 100 )
-  {
-    showCurrentParameterPage("Filter Type", String("LP1"));
+void updateFilterType() {
+  if (filterType < 100) {
+    if (filterPoleSW == 1) {
+      showCurrentParameterPage("Filter Type", String("3P LowPass"));
+    } else {
+      showCurrentParameterPage("Filter Type", String("4P LowPass"));
+    }
     filterA = 0;
     filterB = 0;
     filterC = 0;
-  }
-  else if (filterType > 100 && filterType < 200 )
-  {
-    showCurrentParameterPage("Filter Type", String("LP3"));
+
+  } else if (filterType > 100 && filterType < 200) {
+    if (filterPoleSW == 1) {
+      showCurrentParameterPage("Filter Type", String("1P LowPass"));
+    } else {
+      showCurrentParameterPage("Filter Type", String("2P LowPass"));
+    }
     filterA = 1023;
     filterB = 0;
     filterC = 0;
-  }
-  else if (filterType > 200 && filterType < 350 )
-  {
-    showCurrentParameterPage("Filter Type", String("HP1"));
+
+  } else if (filterType > 200 && filterType < 350) {
+    if (filterPoleSW == 1) {
+      showCurrentParameterPage("Filter Type", String("3P HP + 1P LP"));
+    } else {
+      showCurrentParameterPage("Filter Type", String("4P HighPass"));
+    }
     filterA = 0;
     filterB = 1023;
     filterC = 0;
-  }
-  else if (filterType > 350 && filterType < 500 )
-  {
-    showCurrentParameterPage("Filter Type", String("HP2"));
+
+  } else if (filterType > 350 && filterType < 500) {
+    if (filterPoleSW == 1) {
+      showCurrentParameterPage("Filter Type", String("1P HP + 1P LP"));
+    } else {
+      showCurrentParameterPage("Filter Type", String("2P HighPass"));
+    }
     filterA = 1023;
     filterB = 1023;
     filterC = 0;
-  }
-  else if (filterType > 500 && filterType < 650 )
-  {
-    showCurrentParameterPage("Filter Type", String("HP3"));
+
+  } else if (filterType > 500 && filterType < 650) {
+    if (filterPoleSW == 1) {
+      showCurrentParameterPage("Filter Type", String("2P HP + 1P LP"));
+    } else {
+      showCurrentParameterPage("Filter Type", String("4P BandPass"));
+    }
     filterA = 0;
     filterB = 0;
     filterC = 1023;
-  }
-  else if (filterType > 650 && filterType < 800 )
-  {
-    showCurrentParameterPage("Filter Type", String("HP2 + LP1"));
+
+  } else if (filterType > 650 && filterType < 800) {
+    if (filterPoleSW == 1) {
+      showCurrentParameterPage("Filter Type", String("2P BP + 1P LP"));
+    } else {
+      showCurrentParameterPage("Filter Type", String("2P BandPass"));
+    }
     filterA = 1023;
     filterB = 0;
     filterC = 1023;
-  }
-  else if (filterType > 800 && filterType < 1000 )
-  {
-    showCurrentParameterPage("Filter Type", String("Notch"));
+
+  } else if (filterType > 800 && filterType < 1000) {
+    if (filterPoleSW == 1) {
+      showCurrentParameterPage("Filter Type", String("3P AP + 1P LP"));
+    } else {
+      showCurrentParameterPage("Filter Type", String("3P AllPass"));
+    }
     filterA = 0;
     filterB = 1023;
     filterC = 1023;
-  }
-  else
-  {
-    showCurrentParameterPage("Filter Type", String("All Pass"));
+
+  } else {
+    if (filterPoleSW == 1) {
+      showCurrentParameterPage("Filter Type", String("2P Notch + LP"));
+    } else {
+      showCurrentParameterPage("Filter Type", String("Notch"));
+    }
     filterA = 1023;
     filterB = 1023;
     filterC = 1023;
   }
 }
 
-void updatefilterEGlevel()
-{
+void updatefilterEGlevel() {
   showCurrentParameterPage("EG Depth", int(filterEGlevelstr));
 }
 
-void updateLFORate()
-{
+void updateLFORate() {
   showCurrentParameterPage("LFO Rate", String(LFORatestr) + " Hz");
 }
 
-void updateStratusLFOWaveform()
-{
+void updateStratusLFOWaveform() {
   getStratusLFOWaveform(LFOWaveform);
   showCurrentParameterPage("LFO Wave", StratusLFOWaveform);
 }
 
-int getStratusLFOWaveform(int value)
-{
-  if (lfoAlt  == 1 )
-  {
-    if (value >= 0 && value < 127)
-    {
+int getStratusLFOWaveform(int value) {
+  if (lfoAlt == 1) {
+    if (value >= 0 && value < 127) {
       StratusLFOWaveform = "Saw +Oct";
-    }
-    else if (value >= 128 && value < 255)
-    {
+    } else if (value >= 128 && value < 255) {
       StratusLFOWaveform = "Quad Saw";
-    }
-    else if (value >= 256 && value < 383)
-    {
+    } else if (value >= 256 && value < 383) {
       StratusLFOWaveform = "Quad Pulse";
-    }
-    else if (value >= 384 && value < 511)
-    {
+    } else if (value >= 384 && value < 511) {
       StratusLFOWaveform = "Tri Step";
-    }
-    else if (value >= 512 && value < 639)
-    {
+    } else if (value >= 512 && value < 639) {
       StratusLFOWaveform = "Sine +Oct";
-    }
-    else if (value >= 640 && value < 767)
-    {
+    } else if (value >= 640 && value < 767) {
       StratusLFOWaveform = "Sine +3rd";
-    }
-    else if (value >= 768 && value < 895)
-    {
+    } else if (value >= 768 && value < 895) {
       StratusLFOWaveform = "Sine +4th";
-    }
-    else if (value >= 896 && value < 1023)
-    {
+    } else if (value >= 896 && value < 1024) {
       StratusLFOWaveform = "Rand Slopes";
     }
-  }
-  else
-  {
-    if (value >= 0 && value < 127)
-    {
+  } else {
+    if (value >= 0 && value < 127) {
       StratusLFOWaveform = "Sawtooth Up";
-    }
-    else if (value >= 128 && value < 255)
-    {
+    } else if (value >= 128 && value < 255) {
       StratusLFOWaveform = "Sawtooth Down";
-    }
-    else if (value >= 256 && value < 383)
-    {
+    } else if (value >= 256 && value < 383) {
       StratusLFOWaveform = "Squarewave";
-    }
-    else if (value >= 384 && value < 511)
-    {
+    } else if (value >= 384 && value < 511) {
       StratusLFOWaveform = "Triangle";
-    }
-    else if (value >= 512 && value < 639)
-    {
+    } else if (value >= 512 && value < 639) {
       StratusLFOWaveform = "Sinewave";
-    }
-    else if (value >= 640 && value < 767)
-    {
+    } else if (value >= 640 && value < 767) {
       StratusLFOWaveform = "Sweeps";
-    }
-    else if (value >= 768 && value < 895)
-    {
+    } else if (value >= 768 && value < 895) {
       StratusLFOWaveform = "Lumps";
-    }
-    else if (value >= 896 && value < 1023)
-    {
+    } else if (value >= 896 && value < 1024) {
       StratusLFOWaveform = "Sample & Hold";
     }
   }
 }
 
-void updatefilterAttack()
-{
-  if (filterAttackstr < 1000)
-  {
+void updatefilterAttack() {
+  if (filterAttackstr < 1000) {
     showCurrentParameterPage("VCF Attack", String(int(filterAttackstr)) + " ms", FILTER_ENV);
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("VCF Attack", String(filterAttackstr * 0.001) + " s", FILTER_ENV);
   }
 }
 
-void updatefilterDecay()
-{
-  if (filterDecaystr < 1000)
-  {
+void updatefilterDecay() {
+  if (filterDecaystr < 1000) {
     showCurrentParameterPage("VCF Decay", String(int(filterDecaystr)) + " ms", FILTER_ENV);
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("VCF Decay", String(filterDecaystr * 0.001) + " s", FILTER_ENV);
   }
 }
 
-void updatefilterSustain()
-{
+void updatefilterSustain() {
   showCurrentParameterPage("VCF Sustain", String(filterSustainstr), FILTER_ENV);
 }
 
-void updatefilterRelease()
-{
-  if (filterReleasestr < 1000)
-  {
+void updatefilterRelease() {
+  if (filterReleasestr < 1000) {
     showCurrentParameterPage("VCF Release", String(int(filterReleasestr)) + " ms", FILTER_ENV);
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("VCF Release", String(filterReleasestr * 0.001) + " s", FILTER_ENV);
   }
 }
 
-void updateampAttack()
-{
-  if (ampAttackstr < 1000)
-  {
+void updateampAttack() {
+  if (ampAttackstr < 1000) {
     showCurrentParameterPage("VCA Attack", String(int(ampAttackstr)) + " ms", AMP_ENV);
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("VCA Attack", String(ampAttackstr * 0.001) + " s", AMP_ENV);
   }
 }
 
-void updateampDecay()
-{
-  if (ampDecaystr < 1000)
-  {
+void updateampDecay() {
+  if (ampDecaystr < 1000) {
     showCurrentParameterPage("VCA Decay", String(int(ampDecaystr)) + " ms", AMP_ENV);
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("VCA Decay", String(ampDecaystr * 0.001) + " s", AMP_ENV);
   }
 }
 
-void updateampSustain()
-{
+void updateampSustain() {
   showCurrentParameterPage("VCA Sustain", String(ampSustainstr), AMP_ENV);
 }
 
-void updateampRelease()
-{
-  if (ampReleasestr < 1000)
-  {
+void updateampRelease() {
+  if (ampReleasestr < 1000) {
     showCurrentParameterPage("VCA Release", String(int(ampReleasestr)) + " ms", AMP_ENV);
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("VCA Release", String(ampReleasestr * 0.001) + " s", AMP_ENV);
   }
 }
 
-void updatevolumeControl()
-{
+void updatevolumeControl() {
   showCurrentParameterPage("Volume", int(volumeControlstr));
 }
 
 ////////////////////////////////////////////////////////////////
 
-void updateglideSW()
-{
-  if (glideSW == 0)
-  {
+void updateglideSW() {
+  if (glideSW == 0) {
     showCurrentParameterPage("Glide", "Off");
     sr.set(0, LOW);  // LED off
     midiCCOut(CCglideSW, 1);
+    delay(1);
     midiCCOut(CCglideTime, 0);
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("Glide", "On");
     sr.set(0, HIGH);  // LED on
-    midiCCOut(CCglideTime, int(mux1Read / 8));
+    midiCCOut(CCglideTime, int(glideTime / 8));
+    delay(1);
     midiCCOut(CCglideSW, 127);
   }
 }
 
-void updatekeytrack()
-{
-  if (keytrack == 0)
-  {
+void updatekeytrack() {
+  if (keytrack == 0) {
     showCurrentParameterPage("VCF Keytrack", "Off");
     sr.set(1, LOW);  // LED off
     sr.set(FILTER_KEYTRACK, LOW);
     midiCCOut(CCkeytrack, 1);
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("VCF Keytrack", "On");
     sr.set(1, HIGH);  // LED on
     sr.set(FILTER_KEYTRACK, HIGH);
@@ -591,17 +497,13 @@ void updatekeytrack()
   }
 }
 
-void updatefilterPoleSwitch()
-{
-  if (filterPoleSW == 1)
-  {
+void updatefilterPoleSwitch() {
+  if (filterPoleSW == 1) {
     showCurrentParameterPage("VCF Pole", "On");
     sr.set(2, HIGH);  // LED on
     sr.set(FILTER_POLE, HIGH);
     midiCCOut(CCfilterPoleSW, 127);
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("VCF Pole", "Off");
     sr.set(2, LOW);  // LED off
     sr.set(FILTER_POLE, LOW);
@@ -609,17 +511,13 @@ void updatefilterPoleSwitch()
   }
 }
 
-void updatefilterLoop()
-{
-  if (filterLoop == 1)
-  {
+void updatefilterLoop() {
+  if (filterLoop == 1) {
     showCurrentParameterPage("VCF EG Loop", "On");
     sr.set(3, HIGH);  // LED on
     sr.set(FILTER_LOOP, HIGH);
     midiCCOut(CCfilterLoop, 127);
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("VCF EG Loop", "Off");
     sr.set(3, LOW);  // LED off
     sr.set(FILTER_LOOP, LOW);
@@ -627,17 +525,13 @@ void updatefilterLoop()
   }
 }
 
-void updatefilterEGinv()
-{
-  if (filterEGinv == 0)
-  {
+void updatefilterEGinv() {
+  if (filterEGinv == 0) {
     showCurrentParameterPage("Filter Env", "Positive");
     sr.set(4, LOW);  // LED off
     sr.set(FILTER_EG_INV, LOW);
     midiCCOut(CCfilterEGinv, 1);
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("Filter Env", "Negative");
     sr.set(4, HIGH);  // LED on
     sr.set(FILTER_EG_INV, HIGH);
@@ -645,17 +539,13 @@ void updatefilterEGinv()
   }
 }
 
-void updatefilterVel()
-{
-  if (filterVel == 0)
-  {
+void updatefilterVel() {
+  if (filterVel == 0) {
     showCurrentParameterPage("VCF Velocity", "Off");
     sr.set(5, LOW);  // LED off
     sr.set(FILTER_VELOCITY, LOW);
     midiCCOut(CCfilterVel, 1);
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("VCF Velocity", "On");
     sr.set(5, HIGH);  // LED on
     sr.set(FILTER_VELOCITY, HIGH);
@@ -663,17 +553,13 @@ void updatefilterVel()
   }
 }
 
-void updatevcaLoop()
-{
-  if (vcaLoop == 1)
-  {
+void updatevcaLoop() {
+  if (vcaLoop == 1) {
     showCurrentParameterPage("VCA EG Loop", "On");
     sr.set(6, HIGH);  // LED on
     sr.set(AMP_LOOP, HIGH);
     midiCCOut(CCvcaLoop, 127);
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("VCA EG Loop", "Off");
     sr.set(6, LOW);  // LED off
     sr.set(AMP_LOOP, LOW);
@@ -681,17 +567,13 @@ void updatevcaLoop()
   }
 }
 
-void updatevcaVel()
-{
-  if (vcaVel == 0)
-  {
+void updatevcaVel() {
+  if (vcaVel == 0) {
     showCurrentParameterPage("VCA Velocity", "Off");
     sr.set(7, LOW);  // LED off
     sr.set(AMP_VELOCITY, LOW);
     midiCCOut(CCvcaVel, 1);
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("VCA Velocity", "On");
     sr.set(7, HIGH);  // LED on
     sr.set(AMP_VELOCITY, HIGH);
@@ -699,10 +581,8 @@ void updatevcaVel()
   }
 }
 
-void updatevcaGate()
-{
-  if (vcaGate == 0)
-  {
+void updatevcaGate() {
+  if (vcaGate == 0) {
     showCurrentParameterPage("VCA Gate", "Off");
     sr.set(8, LOW);  // LED off
     ampAttack = oldampAttack;
@@ -711,9 +591,7 @@ void updatevcaGate()
     ampRelease = oldampRelease;
     midiCCOut(CCvcaGate, 1);
 
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("VCA Gate", "On");
     sr.set(8, HIGH);  // LED on
     ampAttack = 0;
@@ -721,21 +599,16 @@ void updatevcaGate()
     ampSustain = 1023;
     ampRelease = 0;
     midiCCOut(CCvcaGate, 127);
-
   }
 }
 
-void updatelfoAlt()
-{
-  if (lfoAlt == 0 )
-  {
+void updatelfoAlt() {
+  if (lfoAlt == 0) {
     showCurrentParameterPage("LFO Waveform", String("Original"));
     sr.set(LFO_ALT_LED, LOW);  // LED off
     sr.set(LFO_ALT, HIGH);
     midiCCOut(CClfoAlt, 1);
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("LFO Waveform", String("Alternate"));
     sr.set(LFO_ALT_LED, HIGH);  // LED on
     sr.set(LFO_ALT, LOW);
@@ -743,17 +616,13 @@ void updatelfoAlt()
   }
 }
 
-void updatechorus1()
-{
-  if (chorus1 == 0 )
-  {
+void updatechorus1() {
+  if (chorus1 == 0) {
     showCurrentParameterPage("Chorus 1", String("Off"));
     sr.set(CHORUS1_LED, LOW);  // LED off
     sr.set(CHORUS1_OUT, LOW);
     midiCCOut(CCchorus1, 1);
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("Chorus 1", String("On"));
     sr.set(CHORUS1_LED, HIGH);  // LED on
     sr.set(CHORUS1_OUT, HIGH);
@@ -761,17 +630,13 @@ void updatechorus1()
   }
 }
 
-void updatechorus2()
-{
-  if (chorus2 == 0 )
-  {
+void updatechorus2() {
+  if (chorus2 == 0) {
     showCurrentParameterPage("Chorus 2", String("Off"));
     sr.set(CHORUS2_LED, LOW);  // LED off
     sr.set(CHORUS2_OUT, LOW);
     midiCCOut(CCchorus2, 1);
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("Chorus 2", String("On"));
     sr.set(CHORUS2_LED, HIGH);  // LED on
     sr.set(CHORUS2_OUT, HIGH);
@@ -779,44 +644,34 @@ void updatechorus2()
   }
 }
 
-void updateMonoMulti()
-{
-  if (monoMulti == 0)
-  {
+void updateMonoMulti() {
+  if (monoMulti == 0) {
     showCurrentParameterPage("LFO Retrigger", "Off");
 
-  }
-  else
-  {
+  } else {
     showCurrentParameterPage("LFO Retrigger", "On");
-
   }
 }
 
-void updatePitchBend()
-{
+void updatePitchBend() {
   showCurrentParameterPage("Bender Range", int(PitchBendLevelstr));
 }
 
-void updatemodWheel()
-{
+void updatemodWheel() {
   showCurrentParameterPage("Mod Range", int(modWheelLevelstr));
 }
 
-void updatePatchname()
-{
+void updatePatchname() {
   showPatchPage(String(patchNo), patchName);
 }
 
-void myControlChange(byte channel, byte control, int value)
-{
+void myControlChange(byte channel, byte control, int value) {
 
   //  Serial.println("MIDI: " + String(control) + " : " + String(value));
-  switch (control)
-  {
+  switch (control) {
     case CCpwLFO:
       pwLFO = value;
-      pwLFOstr = value / 8; // for display
+      pwLFOstr = value / 8;  // for display
       updatepwLFO();
       break;
 
@@ -885,25 +740,25 @@ void myControlChange(byte channel, byte control, int value)
 
     case CCosc2SawLevel:
       osc2SawLevel = value;
-      osc2SawLevelstr = value / 8; // for display
+      osc2SawLevelstr = value / 8;  // for display
       updateOsc2SawLevel();
       break;
 
     case CCosc1SawLevel:
       osc1SawLevel = value;
-      osc1SawLevelstr = value / 8; // for display
+      osc1SawLevelstr = value / 8;  // for display
       updateOsc1SawLevel();
       break;
 
     case CCosc2PulseLevel:
       osc2PulseLevel = value;
-      osc2PulseLevelstr = value / 8; // for display
+      osc2PulseLevelstr = value / 8;  // for display
       updateosc2PulseLevel();
       break;
 
     case CCosc1PulseLevel:
       osc1PulseLevel = value;
-      osc1PulseLevelstr = value / 8; // for display
+      osc1PulseLevelstr = value / 8;  // for display
       updateOsc1PulseLevel();
       break;
 
@@ -937,7 +792,7 @@ void myControlChange(byte channel, byte control, int value)
       break;
 
     case CCLFORate:
-      LFORatestr = LFOTEMPO[value / 8]; // for display
+      LFORatestr = LFOTEMPO[value / 8];  // for display
       LFORate = value;
       updateLFORate();
       break;
@@ -1006,7 +861,7 @@ void myControlChange(byte channel, byte control, int value)
       break;
 
 
-    ////////////////////////////////////////////////
+      ////////////////////////////////////////////////
 
     case CCglideSW:
       value > 0 ? glideSW = 1 : glideSW = 0;
@@ -1070,7 +925,7 @@ void myControlChange(byte channel, byte control, int value)
 
     case CCPitchBend:
       PitchBendLevel = value;
-      PitchBendLevelstr = PITCHBEND[value / 8]; // for display
+      PitchBendLevelstr = PITCHBEND[value / 8];  // for display
       updatePitchBend();
       break;
 
@@ -1080,76 +935,75 @@ void myControlChange(byte channel, byte control, int value)
       break;
 
     case CCmodwheel:
-      switch (modWheelDepth)
-      {
+      switch (modWheelDepth) {
         case 1:
           modWheelLevel = ((value * 8) / 5);
           fmDepth = (int(modWheelLevel));
-          Serial.print("ModWheel Depth ");
-          Serial.println(modWheelLevel);
+          //          Serial.print("ModWheel Depth ");
+          //          Serial.println(modWheelLevel);
           break;
 
         case 2:
           modWheelLevel = ((value * 8) / 4);
           fmDepth = (int(modWheelLevel));
-          Serial.print("ModWheel Depth ");
-          Serial.println(modWheelLevel);
+          //          Serial.print("ModWheel Depth ");
+          //          Serial.println(modWheelLevel);
           break;
 
         case 3:
           modWheelLevel = ((value * 8) / 3.5);
           fmDepth = (int(modWheelLevel));
-          Serial.print("ModWheel Depth ");
-          Serial.println(modWheelLevel);
+          //          Serial.print("ModWheel Depth ");
+          //          Serial.println(modWheelLevel);
           break;
 
         case 4:
           modWheelLevel = ((value * 8) / 3);
           fmDepth = (int(modWheelLevel));
-          Serial.print("ModWheel Depth ");
-          Serial.println(modWheelLevel);
+          //          Serial.print("ModWheel Depth ");
+          //          Serial.println(modWheelLevel);
           break;
 
         case 5:
           modWheelLevel = ((value * 8) / 2.5);
           fmDepth = (int(modWheelLevel));
-          Serial.print("ModWheel Depth ");
-          Serial.println(modWheelLevel);
+          //          Serial.print("ModWheel Depth ");
+          //          Serial.println(modWheelLevel);
           break;
 
         case 6:
           modWheelLevel = ((value * 8) / 2);
           fmDepth = (int(modWheelLevel));
-          Serial.print("ModWheel Depth ");
-          Serial.println(modWheelLevel);
+          //          Serial.print("ModWheel Depth ");
+          //          Serial.println(modWheelLevel);
           break;
 
         case 7:
           modWheelLevel = ((value * 8) / 1.75);
           fmDepth = (int(modWheelLevel));
-          Serial.print("ModWheel Depth ");
-          Serial.println(modWheelLevel);
+          //          Serial.print("ModWheel Depth ");
+          //          Serial.println(modWheelLevel);
           break;
 
         case 8:
           modWheelLevel = ((value * 8) / 1.5);
           fmDepth = (int(modWheelLevel));
-          Serial.print("ModWheel Depth ");
-          Serial.println(modWheelLevel);
+          //          Serial.print("ModWheel Depth ");
+          //          Serial.println(modWheelLevel);
           break;
 
         case 9:
           modWheelLevel = ((value * 8) / 1.25);
           fmDepth = (int(modWheelLevel));
-          Serial.print("ModWheel Depth ");
-          Serial.println(modWheelLevel);
+          //          Serial.print("ModWheel Depth ");
+          //          Serial.println(modWheelLevel);
           break;
 
         case 10:
           modWheelLevel = (value * 8);
           fmDepth = (int(modWheelLevel));
-          Serial.print("ModWheel Depth ");
-          Serial.println(modWheelLevel);
+          //          Serial.print("ModWheel Depth ");
+          //          Serial.println(modWheelLevel);
           break;
       }
       break;
@@ -1160,8 +1014,7 @@ void myControlChange(byte channel, byte control, int value)
   }
 }
 
-void myProgramChange(byte channel, byte program)
-{
+void myProgramChange(byte channel, byte program) {
   state = PATCH;
   patchNo = program + 1;
   recallPatch(patchNo);
@@ -1170,17 +1023,13 @@ void myProgramChange(byte channel, byte program)
   state = PARAMETER;
 }
 
-void recallPatch(int patchNo)
-{
+void recallPatch(int patchNo) {
   allNotesOff();
   File patchFile = SD.open(String(patchNo).c_str());
-  if (!patchFile)
-  {
+  if (!patchFile) {
     Serial.println("File not found");
-  }
-  else
-  {
-    String data[NO_OF_PARAMS]; //Array of data read in
+  } else {
+    String data[NO_OF_PARAMS];  //Array of data read in
     recallPatchData(patchFile, data);
     setCurrentPatchData(data);
     patchFile.close();
@@ -1188,8 +1037,7 @@ void recallPatch(int patchNo)
   }
 }
 
-void setCurrentPatchData(String data[])
-{
+void setCurrentPatchData(String data[]) {
   patchName = data[0];
   pwLFO = data[1].toFloat();
   fmDepth = data[2].toFloat();
@@ -1252,7 +1100,7 @@ void setCurrentPatchData(String data[])
   oldampRelease = data[59].toFloat();
 
   //Switches
-  updateglideSW();
+
   updatekeytrack();
   updatefilterPoleSwitch();
   updatefilterLoop();
@@ -1264,8 +1112,11 @@ void setCurrentPatchData(String data[])
   updatelfoAlt();
   updatechorus1();
   updatechorus2();
-
+  updateosc1Range();
+  updateosc2Range();
+  updateFilterType();
   updateMonoMulti();
+  updateglideSW();
 
   //Patchname
   updatePatchname();
@@ -1274,31 +1125,20 @@ void setCurrentPatchData(String data[])
   Serial.println(patchName);
 }
 
-String getCurrentPatchData()
-{
-  return patchName + "," + String(pwLFO) + "," + String(fmDepth) + "," + String(osc2PW) + "," + String(osc2PWM) + "," + String(osc1PW) + "," + String(osc1PWM) + "," + String(osc1Range) + "," + String(osc2Range) + "," +
-         String(stack) + "," + String(glideTime) + "," + String(osc2Detune) + "," + String(noiseLevel) + "," + String(osc2SawLevel) + "," + String(osc1SawLevel) + "," + String(osc2PulseLevel) + "," + String(osc1PulseLevel) + "," +
-         String(filterCutoff) + "," + String(filterLFO) + "," + String(filterRes) + "," + String(filterType) + "," + String(filterA) + "," + String(filterB) + "," + String(filterC) + "," + String(filterEGlevel) + "," +
-         String(LFORate) + "," + String(LFOWaveform) + "," + String(filterAttack) + "," + String(filterDecay) + "," + String(filterSustain) + "," + String(filterRelease) + "," +
-         String(ampAttack) + "," + String(ampDecay) + "," + String(ampSustain) + "," + String(ampRelease) + "," + String(volumeControl) + "," +
-         String(glideSW) + "," + String(keytrack) + "," + String(filterPoleSW) + "," + String(filterLoop) + "," + String(filterEGinv) + "," + String(filterVel) + "," +
-         String(vcaLoop) + "," + String(vcaVel) + "," + String(vcaGate) + "," + String(lfoAlt) + "," + String(chorus1) + "," + String(chorus2) + "," + String(monoMulti) + "," + String(modWheelLevel) + "," +
-         String(PitchBendLevel) + "," + String(linLog) + "," + String(oct1A) + "," + String(oct1B) + "," + String(oct2A) + "," + String(oct2B) + "," + String(oldampAttack) + "," + String(oldampDecay) + "," + String(oldampSustain) + "," + String(oldampRelease);
+String getCurrentPatchData() {
+  return patchName + "," + String(pwLFO) + "," + String(fmDepth) + "," + String(osc2PW) + "," + String(osc2PWM) + "," + String(osc1PW) + "," + String(osc1PWM) + "," + String(osc1Range) + "," + String(osc2Range) + "," + String(stack) + "," + String(glideTime) + "," + String(osc2Detune) + "," + String(noiseLevel) + "," + String(osc2SawLevel) + "," + String(osc1SawLevel) + "," + String(osc2PulseLevel) + "," + String(osc1PulseLevel) + "," + String(filterCutoff) + "," + String(filterLFO) + "," + String(filterRes) + "," + String(filterType) + "," + String(filterA) + "," + String(filterB) + "," + String(filterC) + "," + String(filterEGlevel) + "," + String(LFORate) + "," + String(LFOWaveform) + "," + String(filterAttack) + "," + String(filterDecay) + "," + String(filterSustain) + "," + String(filterRelease) + "," + String(ampAttack) + "," + String(ampDecay) + "," + String(ampSustain) + "," + String(ampRelease) + "," + String(volumeControl) + "," + String(glideSW) + "," + String(keytrack) + "," + String(filterPoleSW) + "," + String(filterLoop) + "," + String(filterEGinv) + "," + String(filterVel) + "," + String(vcaLoop) + "," + String(vcaVel) + "," + String(vcaGate) + "," + String(lfoAlt) + "," + String(chorus1) + "," + String(chorus2) + "," + String(monoMulti) + "," + String(modWheelLevel) + "," + String(PitchBendLevel) + "," + String(linLog) + "," + String(oct1A) + "," + String(oct1B) + "," + String(oct2A) + "," + String(oct2B) + "," + String(oldampAttack) + "," + String(oldampDecay) + "," + String(oldampSustain) + "," + String(oldampRelease);
 }
 
-void checkMux()
-{
+void checkMux() {
 
   mux1Read = adc->adc1->analogRead(MUX1_S);
   mux2Read = adc->adc1->analogRead(MUX2_S);
   mux3Read = adc->adc0->analogRead(MUX3_S);
 
-  if (mux1Read > (mux1ValuesPrev[muxInput] + QUANTISE_FACTOR) || mux1Read < (mux1ValuesPrev[muxInput] - QUANTISE_FACTOR))
-  {
+  if (mux1Read > (mux1ValuesPrev[muxInput] + QUANTISE_FACTOR) || mux1Read < (mux1ValuesPrev[muxInput] - QUANTISE_FACTOR)) {
     mux1ValuesPrev[muxInput] = mux1Read;
 
-    switch (muxInput)
-    {
+    switch (muxInput) {
       case MUX1_pwLFO:
         midiCCOut(CCpwLFO, int(mux1Read / 8));
         myControlChange(midiChannel, CCpwLFO, mux1Read);
@@ -1366,12 +1206,10 @@ void checkMux()
     }
   }
 
-  if (mux2Read > (mux2ValuesPrev[muxInput] + QUANTISE_FACTOR) || mux2Read < (mux2ValuesPrev[muxInput] - QUANTISE_FACTOR))
-  {
+  if (mux2Read > (mux2ValuesPrev[muxInput] + QUANTISE_FACTOR) || mux2Read < (mux2ValuesPrev[muxInput] - QUANTISE_FACTOR)) {
     mux2ValuesPrev[muxInput] = mux2Read;
 
-    switch (muxInput)
-    {
+    switch (muxInput) {
       case MUX2_filterCutoff:
         midiCCOut(CCfilterCutoff, int(mux2Read / 8));
         myControlChange(midiChannel, CCfilterCutoff, mux2Read);
@@ -1447,25 +1285,21 @@ void checkMux()
   digitalWriteFast(MUX_1, muxInput & B0010);
   digitalWriteFast(MUX_2, muxInput & B0100);
   digitalWriteFast(MUX_3, muxInput & B1000);
-
 }
 
-void midiCCOut(byte cc, byte value)
-{
+void midiCCOut(byte cc, byte value) {
   //usbMIDI.sendControlChange(cc, value, midiChannel); //MIDI DIN is set to Out
   //midi1.sendControlChange(cc, value, midiChannel);
-  MIDI.sendControlChange(cc, value, midiChannel); //MIDI DIN is set to Out
+  MIDI.sendControlChange(cc, value, midiChannel);  //MIDI DIN is set to Out
 }
 
-void writeDemux()
-{
+void writeDemux() {
   delayMicroseconds(DelayForSH3);
   analogWrite(A21, 0);
 
   //DEMUX 1
   digitalWriteFast(DEMUX_EN_1, LOW);
-  switch (muxOutput)
-  {
+  switch (muxOutput) {
     case 0:
       analogWrite(A21, int(fmDepth / 1.57));
       break;
@@ -1523,8 +1357,7 @@ void writeDemux()
   //DEMUX 2
 
   digitalWriteFast(DEMUX_EN_2, LOW);
-  switch (muxOutput)
-  {
+  switch (muxOutput) {
     case 0:
       analogWrite(A21, int(filterAttack));
       break;
@@ -1582,8 +1415,7 @@ void writeDemux()
   //DEMUX 3
 
   digitalWriteFast(DEMUX_EN_3, LOW);
-  switch (muxOutput)
-  {
+  switch (muxOutput) {
     case 0:
       analogWrite(A21, int(filterA));
       break;
@@ -1645,129 +1477,107 @@ void writeDemux()
   digitalWriteFast(DEMUX_1, muxOutput & B0010);
   digitalWriteFast(DEMUX_2, muxOutput & B0100);
   digitalWriteFast(DEMUX_3, muxOutput & B1000);
-
 }
 
-void updateDAC()
-{
+void updateDAC() {
   setVoltage(DAC_NOTE1, 0, 1, int(osc1PW * 2));
   setVoltage(DAC_NOTE1, 1, 1, int(osc2PW * 2));
 }
 
 
-void checkSwitches()
-{
+void checkSwitches() {
 
   glideSwitch.update();
-  if (glideSwitch.fallingEdge())
-  {
+  if (glideSwitch.fallingEdge()) {
     glideSW = !glideSW;
     myControlChange(midiChannel, CCglideSW, glideSW);
   }
 
   keytrackSwitch.update();
-  if (keytrackSwitch.fallingEdge())
-  {
+  if (keytrackSwitch.fallingEdge()) {
     keytrack = !keytrack;
     myControlChange(midiChannel, CCkeytrack, keytrack);
   }
 
   filterPoleSwitch.update();
-  if (filterPoleSwitch.fallingEdge())
-  {
+  if (filterPoleSwitch.fallingEdge()) {
     filterPoleSW = !filterPoleSW;
     myControlChange(midiChannel, CCfilterPoleSW, filterPoleSW);
   }
 
   filterLoopSwitch.update();
-  if (filterLoopSwitch.fallingEdge())
-  {
+  if (filterLoopSwitch.fallingEdge()) {
     filterLoop = !filterLoop;
     myControlChange(midiChannel, CCfilterLoop, filterLoop);
   }
 
   filterInvSwitch.update();
-  if (filterInvSwitch.fallingEdge())
-  {
+  if (filterInvSwitch.fallingEdge()) {
     filterEGinv = !filterEGinv;
     myControlChange(midiChannel, CCfilterEGinv, filterEGinv);
   }
 
   filterVelSwitch.update();
-  if (filterVelSwitch.fallingEdge())
-  {
+  if (filterVelSwitch.fallingEdge()) {
     filterVel = !filterVel;
     myControlChange(midiChannel, CCfilterVel, filterVel);
   }
 
   vcaLoopSwitch.update();
-  if (vcaLoopSwitch.fallingEdge())
-  {
+  if (vcaLoopSwitch.fallingEdge()) {
     vcaLoop = !vcaLoop;
     myControlChange(midiChannel, CCvcaLoop, vcaLoop);
   }
 
 
   vcaVelSwitch.update();
-  if (vcaVelSwitch.fallingEdge())
-  {
+  if (vcaVelSwitch.fallingEdge()) {
     vcaVel = !vcaVel;
     myControlChange(midiChannel, CCvcaVel, vcaVel);
   }
 
 
   vcaGateSwitch.update();
-  if (vcaGateSwitch.fallingEdge())
-  {
+  if (vcaGateSwitch.fallingEdge()) {
     vcaGate = !vcaGate;
     myControlChange(midiChannel, CCvcaGate, vcaGate);
   }
 
   lfoAltSwitch.update();
-  if (lfoAltSwitch.fallingEdge())
-  {
+  if (lfoAltSwitch.fallingEdge()) {
     lfoAlt = !lfoAlt;
     myControlChange(midiChannel, CClfoAlt, lfoAlt);
   }
 
   chorus1Switch.update();
-  if (chorus1Switch.fallingEdge())
-  {
+  if (chorus1Switch.fallingEdge()) {
     chorus1 = !chorus1;
     myControlChange(midiChannel, CCchorus1, chorus1);
   }
 
   chorus2Switch.update();
-  if (chorus2Switch.fallingEdge())
-  {
+  if (chorus2Switch.fallingEdge()) {
     chorus2 = !chorus2;
     myControlChange(midiChannel, CCchorus2, chorus2);
   }
 
   saveButton.update();
-  if (saveButton.read() == LOW && saveButton.duration() > HOLD_DURATION)
-  {
-    switch (state)
-    {
+  if (saveButton.read() == LOW && saveButton.duration() > HOLD_DURATION) {
+    switch (state) {
       case PARAMETER:
       case PATCH:
         state = DELETE;
-        saveButton.write(HIGH); //Come out of this state
-        del = true;             //Hack
+        saveButton.write(HIGH);  //Come out of this state
+        del = true;              //Hack
         break;
     }
-  }
-  else if (saveButton.risingEdge())
-  {
-    if (!del)
-    {
-      switch (state)
-      {
+  } else if (saveButton.risingEdge()) {
+    if (!del) {
+      switch (state) {
         case PARAMETER:
-          if (patches.size() < PATCHES_LIMIT)
-          {
-            resetPatchesOrdering(); //Reset order of patches from first patch
-            patches.push({patches.size() + 1, INITPATCHNAME});
+          if (patches.size() < PATCHES_LIMIT) {
+            resetPatchesOrdering();  //Reset order of patches from first patch
+            patches.push({ patches.size() + 1, INITPATCHNAME });
             state = SAVE;
           }
           break;
@@ -1778,46 +1588,39 @@ void checkSwitches()
           savePatch(String(patches.last().patchNo).c_str(), getCurrentPatchData());
           showPatchPage(patches.last().patchNo, patches.last().patchName);
           patchNo = patches.last().patchNo;
-          loadPatches(); //Get rid of pushed patch if it wasn't saved
+          loadPatches();  //Get rid of pushed patch if it wasn't saved
           setPatchesOrdering(patchNo);
           renamedPatch = "";
           state = PARAMETER;
           break;
         case PATCHNAMING:
-          if (renamedPatch.length() > 0) patchName = renamedPatch;//Prevent empty strings
+          if (renamedPatch.length() > 0) patchName = renamedPatch;  //Prevent empty strings
           state = PATCH;
           savePatch(String(patches.last().patchNo).c_str(), getCurrentPatchData());
           showPatchPage(patches.last().patchNo, patchName);
           patchNo = patches.last().patchNo;
-          loadPatches(); //Get rid of pushed patch if it wasn't saved
+          loadPatches();  //Get rid of pushed patch if it wasn't saved
           setPatchesOrdering(patchNo);
           renamedPatch = "";
           state = PARAMETER;
           break;
       }
-    }
-    else
-    {
+    } else {
       del = false;
     }
   }
 
   settingsButton.update();
-  if (settingsButton.read() == LOW && settingsButton.duration() > HOLD_DURATION)
-  {
+  if (settingsButton.read() == LOW && settingsButton.duration() > HOLD_DURATION) {
     //If recall held, set current patch to match current hardware state
     //Reinitialise all hardware values to force them to be re-read if different
     state = REINITIALISE;
     reinitialiseToPanel();
-    settingsButton.write(HIGH); //Come out of this state
-    reini = true;           //Hack
-  }
-  else if (settingsButton.risingEdge())
-  { //cannot be fallingEdge because holding button won't work
-    if (!reini)
-    {
-      switch (state)
-      {
+    settingsButton.write(HIGH);              //Come out of this state
+    reini = true;                            //Hack
+  } else if (settingsButton.risingEdge()) {  //cannot be fallingEdge because holding button won't work
+    if (!reini) {
+      switch (state) {
         case PARAMETER:
           settingsValueIndex = getCurrentIndex(settingsOptions.first().currentIndex);
           showSettingsPage(settingsOptions.first().option, settingsOptions.first().value[settingsValueIndex], SETTINGS);
@@ -1834,27 +1637,20 @@ void checkSwitches()
           state = SETTINGS;
           break;
       }
-    }
-    else
-    {
+    } else {
       reini = false;
     }
   }
 
   backButton.update();
-  if (backButton.read() == LOW && backButton.duration() > HOLD_DURATION)
-  {
+  if (backButton.read() == LOW && backButton.duration() > HOLD_DURATION) {
     //If Back button held, Panic - all notes off
     allNotesOff();
-    backButton.write(HIGH); //Come out of this state
-    panic = true;           //Hack
-  }
-  else if (backButton.risingEdge())
-  { //cannot be fallingEdge because holding button won't work
-    if (!panic)
-    {
-      switch (state)
-      {
+    backButton.write(HIGH);              //Come out of this state
+    panic = true;                        //Hack
+  } else if (backButton.risingEdge()) {  //cannot be fallingEdge because holding button won't work
+    if (!panic) {
+      switch (state) {
         case RECALL:
           setPatchesOrdering(patchNo);
           state = PARAMETER;
@@ -1862,7 +1658,7 @@ void checkSwitches()
         case SAVE:
           renamedPatch = "";
           state = PARAMETER;
-          loadPatches();//Remove patch that was to be saved
+          loadPatches();  //Remove patch that was to be saved
           setPatchesOrdering(patchNo);
           break;
         case PATCHNAMING:
@@ -1883,17 +1679,14 @@ void checkSwitches()
           state = SETTINGS;
           break;
       }
-    }
-    else
-    {
+    } else {
       panic = false;
     }
   }
 
   //Encoder switch
   recallButton.update();
-  if (recallButton.read() == LOW && recallButton.duration() > HOLD_DURATION)
-  {
+  if (recallButton.read() == LOW && recallButton.duration() > HOLD_DURATION) {
     //If Recall button held, return to current patch setting
     //which clears any changes made
     state = PATCH;
@@ -1901,17 +1694,13 @@ void checkSwitches()
     patchNo = patches.first().patchNo;
     recallPatch(patchNo);
     state = PARAMETER;
-    recallButton.write(HIGH); //Come out of this state
-    recall = true;            //Hack
-  }
-  else if (recallButton.risingEdge())
-  {
-    if (!recall)
-    {
-      switch (state)
-      {
+    recallButton.write(HIGH);  //Come out of this state
+    recall = true;             //Hack
+  } else if (recallButton.risingEdge()) {
+    if (!recall) {
+      switch (state) {
         case PARAMETER:
-          state = RECALL;//show patch list
+          state = RECALL;  //show patch list
           break;
         case RECALL:
           state = PATCH;
@@ -1922,12 +1711,11 @@ void checkSwitches()
           break;
         case SAVE:
           showRenamingPage(patches.last().patchName);
-          patchName  = patches.last().patchName;
+          patchName = patches.last().patchName;
           state = PATCHNAMING;
           break;
         case PATCHNAMING:
-          if (renamedPatch.length() < 13)
-          {
+          if (renamedPatch.length() < 13) {
             renamedPatch.concat(String(currentCharacter));
             charIndex = 0;
             currentCharacter = CHARACTERS[charIndex];
@@ -1936,17 +1724,16 @@ void checkSwitches()
           break;
         case DELETE:
           //Don't delete final patch
-          if (patches.size() > 1)
-          {
+          if (patches.size() > 1) {
             state = DELETEMSG;
-            patchNo = patches.first().patchNo;//PatchNo to delete from SD card
-            patches.shift();//Remove patch from circular buffer
-            deletePatch(String(patchNo).c_str());//Delete from SD card
-            loadPatches();//Repopulate circular buffer to start from lowest Patch No
+            patchNo = patches.first().patchNo;     //PatchNo to delete from SD card
+            patches.shift();                       //Remove patch from circular buffer
+            deletePatch(String(patchNo).c_str());  //Delete from SD card
+            loadPatches();                         //Repopulate circular buffer to start from lowest Patch No
             renumberPatchesOnSD();
-            loadPatches();//Repopulate circular buffer again after delete
-            patchNo = patches.first().patchNo;//Go back to 1
-            recallPatch(patchNo);//Load first patch
+            loadPatches();                      //Repopulate circular buffer again after delete
+            patchNo = patches.first().patchNo;  //Go back to 1
+            recallPatch(patchNo);               //Load first patch
           }
           state = PARAMETER;
           break;
@@ -1963,22 +1750,18 @@ void checkSwitches()
           state = SETTINGS;
           break;
       }
-    }
-    else
-    {
+    } else {
       recall = false;
     }
   }
 }
 
-void reinitialiseToPanel()
-{
+void reinitialiseToPanel() {
   //This sets the current patch to be the same as the current hardware panel state - all the pots
   //The four button controls stay the same state
   //This reinialises the previous hardware values to force a re-read
   muxInput = 0;
-  for (int i = 0; i < MUXCHANNELS; i++)
-  {
+  for (int i = 0; i < MUXCHANNELS; i++) {
     mux1ValuesPrev[i] = RE_READ;
     mux2ValuesPrev[i] = RE_READ;
     mux3ValuesPrev[i] = RE_READ;
@@ -1987,16 +1770,13 @@ void reinitialiseToPanel()
   showPatchPage("Initial", "Panel Settings");
 }
 
-void checkEncoder()
-{
+void checkEncoder() {
   //Encoder works with relative inc and dec values
   //Detent encoder goes up in 4 steps, hence +/-3
 
   long encRead = encoder.read();
-  if ((encCW && encRead > encPrevious + 3) || (!encCW && encRead < encPrevious - 3) )
-  {
-    switch (state)
-    {
+  if ((encCW && encRead > encPrevious + 3) || (!encCW && encRead < encPrevious - 3)) {
+    switch (state) {
       case PARAMETER:
         state = PATCH;
         patches.push(patches.shift());
@@ -2011,7 +1791,7 @@ void checkEncoder()
         patches.push(patches.shift());
         break;
       case PATCHNAMING:
-        if (charIndex == TOTALCHARS) charIndex = 0;//Wrap around
+        if (charIndex == TOTALCHARS) charIndex = 0;  //Wrap around
         currentCharacter = CHARACTERS[charIndex++];
         showRenamingPage(renamedPatch + currentCharacter);
         break;
@@ -2021,7 +1801,7 @@ void checkEncoder()
       case SETTINGS:
         settingsOptions.push(settingsOptions.shift());
         settingsValueIndex = getCurrentIndex(settingsOptions.first().currentIndex);
-        showSettingsPage(settingsOptions.first().option, settingsOptions.first().value[settingsValueIndex] , SETTINGS);
+        showSettingsPage(settingsOptions.first().option, settingsOptions.first().value[settingsValueIndex], SETTINGS);
         break;
       case SETTINGSVALUE:
         if (settingsOptions.first().value[settingsValueIndex + 1] != '\0')
@@ -2029,11 +1809,8 @@ void checkEncoder()
         break;
     }
     encPrevious = encRead;
-  }
-  else if ((encCW && encRead < encPrevious - 3) || (!encCW && encRead > encPrevious + 3))
-  {
-    switch (state)
-    {
+  } else if ((encCW && encRead < encPrevious - 3) || (!encCW && encRead > encPrevious + 3)) {
+    switch (state) {
       case PARAMETER:
         state = PATCH;
         patches.unshift(patches.pop());
@@ -2070,8 +1847,7 @@ void checkEncoder()
   }
 }
 
-void loop()
-{
+void loop() {
   checkSwitches();
   writeDemux();
   updateDAC();
@@ -2079,5 +1855,4 @@ void loop()
   checkEncoder();
   MIDI.read(midiChannel);
   usbMIDI.read(midiChannel);
-
 }

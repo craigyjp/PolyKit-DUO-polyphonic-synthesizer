@@ -44,14 +44,14 @@ void storeMidiChannel(byte channel)
 //}
 
 float getModWheelDepth() {
-  byte mw = EEPROM.read(EEPROM_MODWHEEL_DEPTH);
+  int mw = EEPROM.read(EEPROM_MODWHEEL_DEPTH);
   if (mw < 1 || mw > 10) return modWheelDepth; //If EEPROM has no mod wheel depth stored
-  return mw / 10.0f;
+  return mw;
 }
 
 void storeModWheelDepth(float mwDepth)
 {
-  byte mw =  mwDepth * 10;
+  int mw =  mwDepth;
   EEPROM.update(EEPROM_MODWHEEL_DEPTH, mw);
 }
 
