@@ -1,5 +1,5 @@
 /*
-  Stratus Pulse MUX - Firmware Rev 1.3
+  PolyKit DUO MUX - Firmware Rev 1.3
 
   Includes code by:
     Dave Benn - Handling MUXs, a few other bits and original inspiration  https://www.notesandvolts.com/2019/01/teensy-synth-part-10-hardware.html
@@ -30,7 +30,6 @@
 #include "EepromMgr.h"
 #include "Settings.h"
 #include <ShiftRegister74HC595.h>
-//#include <RoxMux.h>
 
 #define PARAMETER 0      //The main page for displaying the current patch and control (parameter) changes
 #define RECALL 1         //Patches list
@@ -67,14 +66,6 @@ int voiceToReturn = -1;        //Initialise
 long earliestTime = millis();  //For voice allocation - initialise to now
 unsigned long buttonDebounce = 0;
 
-//#define MUX_TOTAL 3
-//Rox74HC595 <MUX_TOTAL> sr;
-//
-//// pins for 74HC595
-//#define OUT_DATA   44 // pin 14 on 74HC595 (DATA)
-//#define OUT_CLK   45  // pin 11 on 74HC595 (CLK)
-//#define OUT_LATCH   46  // pin 12 on 74HC595 (LATCH)
-
 ShiftRegister74HC595<3> sr(44, 45, 46);
 
 void setup() {
@@ -103,28 +94,28 @@ void setup() {
   midiChannel = getMIDIChannel();
   Serial.println("MIDI Ch:" + String(midiChannel) + " (0 is Omni On)");
 
-  //USB HOST MIDI Class Compliant
-  //  delay(200); //Wait to turn on USB Host
-  //  myusb.begin();
-  //  midi1.setHandleControlChange(myControlChange);
-  //  midi1.setHandleProgramChange(myProgramChange);
-  //  Serial.println("USB HOST MIDI Class Compliant Listening");
-
   //USB Client MIDI
   usbMIDI.setHandleControlChange(myControlChange);
   usbMIDI.setHandleProgramChange(myProgramChange);
+  usbMIDI.setHandleAfterTouchChannel(myAfterTouch);
   Serial.println("USB Client MIDI Listening");
 
   //MIDI 5 Pin DIN
   MIDI.begin();
   MIDI.setHandleControlChange(myControlChange);
   MIDI.setHandleProgramChange(myProgramChange);
+  MIDI.setHandleAfterTouchChannel(myAfterTouch);
   MIDI.turnThruOn(midi::Thru::Mode::Off);
   Serial.println("MIDI In DIN Listening");
 
 
-  //Read Key Tracking from EEPROM, this can be set individually by each patch.
-  //keytrackingAmount = getKeyTracking();
+  //Read Aftertouch from EEPROM, this can be set individually by each patch.
+  AfterTouchDest = getAfterTouch();
+  // Serial.print("Aftertouch Value ");
+  // Serial.println(AfterTouchDest);
+  if (AfterTouchDest < 0 || AfterTouchDest > 3) {
+    storeAfterTouch(0);
+  }
 
   //Read Pitch Bend Range from EEPROM
   //pitchBendRange = getPitchBendRange();
@@ -134,6 +125,8 @@ void setup() {
 
   //Read Encoder Direction from EEPROM
   encCW = getEncoderDir();
+  filterLogLin = getFilterEnv();
+  ampLogLin = getAmpEnv();
   patchNo = getLastPatch();
   recallPatch(patchNo);  //Load first patch
 
@@ -644,6 +637,22 @@ void updatechorus2() {
   }
 }
 
+void updateFilterEnv() {
+  if (filterLogLin == 0) {
+    sr.set(FILTER_LIN_LOG, HIGH);
+  } else {
+    sr.set(FILTER_LIN_LOG, LOW);
+  }
+}
+
+void updateAmpEnv() {
+  if (ampLogLin == 0) {
+    sr.set(AMP_LIN_LOG, HIGH);
+  } else {
+    sr.set(AMP_LIN_LOG, LOW);
+  }
+}
+
 void updateMonoMulti() {
   if (monoMulti == 0) {
     showCurrentParameterPage("LFO Retrigger", "Off");
@@ -1023,6 +1032,24 @@ void myProgramChange(byte channel, byte program) {
   state = PARAMETER;
 }
 
+void myAfterTouch(byte channel, byte value) {
+  afterTouch = (value * 8);
+  switch (AfterTouchDest) {
+    case 1:
+      fmDepth = (int(afterTouch));
+      break;
+    case 2:
+      filterCutoff = (filterCutoff + (int(afterTouch)));
+      if (int(afterTouch) <= 8) {
+        filterCutoff = oldfilterCutoff;
+      }
+      break;
+    case 3:
+      filterLFO = (int(afterTouch));
+      break;
+  }
+}
+
 void recallPatch(int patchNo) {
   allNotesOff();
   File patchFile = SD.open(String(patchNo).c_str());
@@ -1098,7 +1125,10 @@ void setCurrentPatchData(String data[]) {
   oldampDecay = data[57].toFloat();
   oldampSustain = data[58].toFloat();
   oldampRelease = data[59].toFloat();
-
+  AfterTouchDest = data[60].toInt();
+  filterLogLin  = data[61].toInt();
+  ampLogLin  = data[62].toInt();
+  oldfilterCutoff = filterCutoff;
   //Switches
 
   updatekeytrack();
@@ -1116,7 +1146,10 @@ void setCurrentPatchData(String data[]) {
   updateosc2Range();
   updateFilterType();
   updateMonoMulti();
+  updateFilterEnv();
+  updateAmpEnv();
   updateglideSW();
+
 
   //Patchname
   updatePatchname();
@@ -1126,7 +1159,7 @@ void setCurrentPatchData(String data[]) {
 }
 
 String getCurrentPatchData() {
-  return patchName + "," + String(pwLFO) + "," + String(fmDepth) + "," + String(osc2PW) + "," + String(osc2PWM) + "," + String(osc1PW) + "," + String(osc1PWM) + "," + String(osc1Range) + "," + String(osc2Range) + "," + String(stack) + "," + String(glideTime) + "," + String(osc2Detune) + "," + String(noiseLevel) + "," + String(osc2SawLevel) + "," + String(osc1SawLevel) + "," + String(osc2PulseLevel) + "," + String(osc1PulseLevel) + "," + String(filterCutoff) + "," + String(filterLFO) + "," + String(filterRes) + "," + String(filterType) + "," + String(filterA) + "," + String(filterB) + "," + String(filterC) + "," + String(filterEGlevel) + "," + String(LFORate) + "," + String(LFOWaveform) + "," + String(filterAttack) + "," + String(filterDecay) + "," + String(filterSustain) + "," + String(filterRelease) + "," + String(ampAttack) + "," + String(ampDecay) + "," + String(ampSustain) + "," + String(ampRelease) + "," + String(volumeControl) + "," + String(glideSW) + "," + String(keytrack) + "," + String(filterPoleSW) + "," + String(filterLoop) + "," + String(filterEGinv) + "," + String(filterVel) + "," + String(vcaLoop) + "," + String(vcaVel) + "," + String(vcaGate) + "," + String(lfoAlt) + "," + String(chorus1) + "," + String(chorus2) + "," + String(monoMulti) + "," + String(modWheelLevel) + "," + String(PitchBendLevel) + "," + String(linLog) + "," + String(oct1A) + "," + String(oct1B) + "," + String(oct2A) + "," + String(oct2B) + "," + String(oldampAttack) + "," + String(oldampDecay) + "," + String(oldampSustain) + "," + String(oldampRelease);
+  return patchName + "," + String(pwLFO) + "," + String(fmDepth) + "," + String(osc2PW) + "," + String(osc2PWM) + "," + String(osc1PW) + "," + String(osc1PWM) + "," + String(osc1Range) + "," + String(osc2Range) + "," + String(stack) + "," + String(glideTime) + "," + String(osc2Detune) + "," + String(noiseLevel) + "," + String(osc2SawLevel) + "," + String(osc1SawLevel) + "," + String(osc2PulseLevel) + "," + String(osc1PulseLevel) + "," + String(filterCutoff) + "," + String(filterLFO) + "," + String(filterRes) + "," + String(filterType) + "," + String(filterA) + "," + String(filterB) + "," + String(filterC) + "," + String(filterEGlevel) + "," + String(LFORate) + "," + String(LFOWaveform) + "," + String(filterAttack) + "," + String(filterDecay) + "," + String(filterSustain) + "," + String(filterRelease) + "," + String(ampAttack) + "," + String(ampDecay) + "," + String(ampSustain) + "," + String(ampRelease) + "," + String(volumeControl) + "," + String(glideSW) + "," + String(keytrack) + "," + String(filterPoleSW) + "," + String(filterLoop) + "," + String(filterEGinv) + "," + String(filterVel) + "," + String(vcaLoop) + "," + String(vcaVel) + "," + String(vcaGate) + "," + String(lfoAlt) + "," + String(chorus1) + "," + String(chorus2) + "," + String(monoMulti) + "," + String(modWheelLevel) + "," + String(PitchBendLevel) + "," + String(linLog) + "," + String(oct1A) + "," + String(oct1B) + "," + String(oct2A) + "," + String(oct2B) + "," + String(oldampAttack) + "," + String(oldampDecay) + "," + String(oldampSustain) + "," + String(oldampRelease) + "," + String(AfterTouchDest) + "," + String(filterLogLin) + "," + String(ampLogLin);
 }
 
 void checkMux() {

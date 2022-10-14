@@ -42,8 +42,9 @@ float osc2PulseLevelstr = 0; // for display
 float osc1PulseLevel = 0;
 float osc1PulseLevelstr = 0; // for display
 
-float filterCutoff = 12000;
-float filterCutoffstr = 12000; // for display
+float filterCutoff = 0;
+float oldfilterCutoff = 0;
+float filterCutoffstr = 0; // for display
 float filterLFO = 0;
 float filterLFOstr = 0; // for display
 float filterRes = 0;
@@ -99,6 +100,10 @@ int PitchBendLevelstr = 0; // for display
 int modWheelDepth = 0;
 float modWheelLevel = 0;
 float modWheelLevelstr = 0;
+int filterLogLin = 0;
+int ampLogLin = 0;
 int linLog = 0;
+float afterTouch = 0;
+int AfterTouchDest = 0;
 
 int returnvalue = 0;

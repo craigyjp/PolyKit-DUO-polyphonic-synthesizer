@@ -1,11 +1,13 @@
 #include <EEPROM.h>
 
 #define EEPROM_MIDI_CH 0
-//#define EEPROM_KEY_TRACKING 1
+#define EEPROM_AFTERTOUCH 1
 //#define EEPROM_PITCHBEND 2
 #define EEPROM_MODWHEEL_DEPTH 3
 #define EEPROM_ENCODER_DIR 2
 #define EEPROM_LAST_PATCH 5
+#define EEPROM_FILTERENV 6
+#define EEPROM_AMPENV 7
 
 int getMIDIChannel() {
   byte midiChannel = EEPROM.read(EEPROM_MIDI_CH);
@@ -18,19 +20,18 @@ void storeMidiChannel(byte channel)
   EEPROM.update(EEPROM_MIDI_CH, channel);
 }
 
-//float getKeyTracking() {
-//  byte keyTracking = EEPROM.read(EEPROM_KEY_TRACKING);
-//  if (keyTracking == 0) return 0;
-//  if (keyTracking == 1) return 0.5;
-//  if (keyTracking == 2) return 1.0;
-//  return keytrackingAmount; //If EEPROM has no key tracking stored
-//}
-//
-//void storeKeyTracking(float keyTracking)
-//{
-//  byte keyTrackingByte = keyTracking * 2;//Key tracking is only 0, 0.5, 1.0 at present
-//  EEPROM.update(EEPROM_KEY_TRACKING, keyTrackingByte);
-//}
+float getAfterTouch() {
+ byte AfterTouchDest = EEPROM.read(EEPROM_AFTERTOUCH);
+ if (AfterTouchDest == 0) return 0;
+ if (AfterTouchDest == 1) return 1;
+ return AfterTouchDest; //If EEPROM has no key tracking stored
+}
+
+
+void storeAfterTouch(byte AfterTouchDest)
+{
+ EEPROM.update(EEPROM_AFTERTOUCH, AfterTouchDest);
+}
 
 //int getPitchBendRange() {
 //  byte pitchbend = EEPROM.read(EEPROM_PITCHBEND);
@@ -64,6 +65,30 @@ boolean getEncoderDir() {
 void storeEncoderDir(byte encoderDir)
 {
   EEPROM.update(EEPROM_ENCODER_DIR, encoderDir);
+}
+
+boolean getFilterEnv() {
+  byte fenv = EEPROM.read(EEPROM_FILTERENV); 
+  if (fenv < 0 || fenv > 1)return true;
+  return fenv == 0 ? false : true;
+}
+
+void storeFilterEnv(byte filterLogLin)
+{
+  EEPROM.update(EEPROM_FILTERENV, filterLogLin);
+  //updateFilterEnv();
+}
+
+boolean getAmpEnv() {
+  byte aenv = EEPROM.read(EEPROM_AMPENV); 
+  if (aenv < 0 || aenv > 1)return true;
+  return aenv == 0 ? false : true;
+}
+
+void storeAmpEnv(byte ampLogLin)
+{
+  EEPROM.update(EEPROM_AMPENV, ampLogLin);
+  //updateAmpEnv();
 }
 
 int getLastPatch() {
