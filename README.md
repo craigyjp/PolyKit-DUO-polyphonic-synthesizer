@@ -10,9 +10,12 @@ This repository contains my versions of the filter/adsr/lfo with added velocity,
 
 - Digitally controlled oscillators similar in design to the Roland Juno series using dual Raspberry Pi Pico's
 - Multipole filters based on the Oberheim Matrix 12
-- Dual LFOs for PWM and main synth
+- Dual LFOs for PWM and main synth, main LFO 16 waveforms, PWM LFO Sinewave only.
 - 6 voice polyphonic dual DCOs per voice
-- Aftertouch control over LFO depth or filter cutoff
+- Aftertouch control over DCO LFO depth, filter LFO depth or filter cutoff
+- Log and lin envelopes
+- Looping envelopes
+- Velocity sensitivity for filters and amplifiers
 - Analogue chorus
 - 999 memory locations to store patches
 - MIDI in/out/thru - channels 1-10 only
