@@ -12,6 +12,7 @@ This repository contains my versions of the filter/adsr/lfo with added velocity,
 - Multipole filters based on the Oberheim Matrix 12
 - Dual LFOs for PWM and main synth
 - 6 voice polyphonic dual DCOs per voice
+- Aftertouch control over LFO depth or filter cutoff
 - Analogue chorus
 - 999 memory locations to store patches
 - MIDI in/out/thru - channels 1-10 only
@@ -19,8 +20,6 @@ This repository contains my versions of the filter/adsr/lfo with added velocity,
 ## Things to fix/improve
 
 - MIDI channel should be set by the programmer, currently the midi router on the rear can change the midi channel.
-
-- Add aftertouch to filter and LFO etc
 
 ## The source of the inspiration for these modifications and acknowledgements
 
