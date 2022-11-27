@@ -23,6 +23,10 @@ This repository contains my versions of the filter/adsr/lfo with added velocity,
 - 999 memory locations to store patches.
 - MIDI in/out/thru - channels 1-10 only.
 
+- How it sounds...
+
+https://youtu.be/yFFuoJo9930
+
 ## Things to fix/improve
 
 - MIDI channel should be set by the programmer, currently the midi router on the rear can change the midi channel.
