@@ -1,8 +1,8 @@
 
 
 // This Teensy3 native optimized version requires specific pins
-#define sclk 20
-#define mosi 21
+//#define sclk 20
+//#define mosi 21
 #define cs 2
 #define dc 3
 #define rst 8
@@ -25,7 +25,7 @@
 #define FILTER_ENV 3
 #define AMP_ENV 4
 
-ST7735_t3 tft = ST7735_t3(cs, dc, mosi, sclk, rst);
+ST7735_t3 tft = ST7735_t3(cs, dc, 21, 20, rst);
 
 String currentParameter = "";
 String currentValue = "";

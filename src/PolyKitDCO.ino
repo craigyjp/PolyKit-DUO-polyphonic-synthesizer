@@ -1327,11 +1327,8 @@ void midiCCOut(byte cc, byte value) {
 }
 
 void writeDemux() {
-  delayMicroseconds(DelayForSH3);
-  analogWrite(A21, 0);
 
   //DEMUX 1
-  digitalWriteFast(DEMUX_EN_1, LOW);
   switch (muxOutput) {
     case 0:
       analogWrite(A21, int(fmDepth / 1.57));
@@ -1382,14 +1379,12 @@ void writeDemux() {
       analogWrite(A21, int(modWheelLevel / 1.57));
       break;
   }
+  digitalWriteFast(DEMUX_EN_1, LOW);
   delayMicroseconds(DelayForSH3);
   digitalWriteFast(DEMUX_EN_1, HIGH);
-  analogWrite(A21, 0);
-  //setVoltage(DAC_NOTE1, 0, 1, 0);
 
   //DEMUX 2
 
-  digitalWriteFast(DEMUX_EN_2, LOW);
   switch (muxOutput) {
     case 0:
       analogWrite(A21, int(filterAttack));
@@ -1440,14 +1435,12 @@ void writeDemux() {
       analogWrite(A21, int(filterRes / 2.5));
       break;
   }
+  digitalWriteFast(DEMUX_EN_2, LOW);
   delayMicroseconds(DelayForSH3);
   digitalWriteFast(DEMUX_EN_2, HIGH);
-  analogWrite(A21, 0);
-  //setVoltage(DAC_NOTE1, 0, 1, 0);
 
   //DEMUX 3
 
-  digitalWriteFast(DEMUX_EN_3, LOW);
   switch (muxOutput) {
     case 0:
       analogWrite(A21, int(filterA));
@@ -1498,9 +1491,9 @@ void writeDemux() {
       analogWrite(A21, 0);
       break;
   }
+  digitalWriteFast(DEMUX_EN_3, LOW);
   delayMicroseconds(DelayForSH3);
   digitalWriteFast(DEMUX_EN_3, HIGH);
-  analogWrite(A21, 0);
 
   muxOutput++;
   if (muxOutput >= DEMUXCHANNELS)
@@ -1511,6 +1504,9 @@ void writeDemux() {
   digitalWriteFast(DEMUX_2, muxOutput & B0100);
   digitalWriteFast(DEMUX_3, muxOutput & B1000);
 }
+
+
+
 
 void updateDAC() {
   setVoltage(DAC_NOTE1, 0, 1, int(osc1PW * 2));
