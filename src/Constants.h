@@ -34,7 +34,7 @@ const float PULSEWIDTH[128] = {0, 0, 0, 1, 1, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 6, 6
 #define LFOMAXRATE 40.0f//40Hz
 #define ONE 1.0f
 #define GLIDEFACTOR 5000.0f//Maximum glide time
-#define NO_OF_VOICES 1
+#define NO_OF_VOICES 6
 #define NO_OF_PARAMS 68
 const char* INITPATCHNAME = "Initial Patch";
 #define HOLD_DURATION 1000

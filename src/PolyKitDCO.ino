@@ -48,11 +48,31 @@ unsigned int state = PARAMETER;
 
 boolean cardStatus = false;
 
+struct VoiceAndNote {
+  int note;
+  int velocity;
+  long timeOn;
+};
+
+struct VoiceAndNote voices[NO_OF_VOICES] = {
+  { -1, -1, 0 },
+  { -1, -1, 0 },
+  { -1, -1, 0 },
+  { -1, -1, 0 },
+  { -1, -1, 0 },
+  { -1, -1, 0 }
+};
+
+boolean voiceOn[NO_OF_VOICES] = { false, false, false, false, false, false };
+int prevNote = 0;  //Initialised to middle value
+bool notes[88] = { 0 }, initial_loop = 1;
+int8_t noteOrder[40] = { 0 }, orderIndx = { 0 };
+
 //USB HOST MIDI Class Compliant
-USBHost myusb;
-USBHub hub1(myusb);
-USBHub hub2(myusb);
-MIDIDevice midi1(myusb);
+// USBHost myusb;
+// USBHub hub1(myusb);
+// USBHub hub2(myusb);
+// MIDIDevice midi1(myusb);
 
 
 //MIDI 5 Pin DIN
@@ -105,6 +125,8 @@ void setup() {
   MIDI.setHandleControlChange(myControlChange);
   MIDI.setHandleProgramChange(myProgramChange);
   MIDI.setHandleAfterTouchChannel(myAfterTouch);
+  MIDI.setHandleNoteOn(DinHandleNoteOn);
+  MIDI.setHandleNoteOff(DinHandleNoteOff);
   MIDI.turnThruOn(midi::Thru::Mode::Off);
   Serial.println("MIDI In DIN Listening");
 
@@ -145,6 +167,127 @@ void setVoltage(int dacpin, bool channel, bool gain, unsigned int mV) {
   SPI.transfer(command & 0xFF);
   digitalWrite(dacpin, HIGH);
   SPI.endTransaction();
+}
+
+void DinHandleNoteOn(byte channel, byte note, byte velocity) {
+
+    //Check for out of range notes
+    if (note < 0 || note > 127) return;
+    switch (getVoiceNo(-1)) {
+      case 1:
+        voices[0].note = note;
+        voices[0].velocity = velocity;
+        voices[0].timeOn = millis();
+        MIDI.sendNoteOn(note, velocity, 1);
+        voiceOn[0] = true;
+        break;
+      case 2:
+        voices[1].note = note;
+        voices[1].velocity = velocity;
+        voices[1].timeOn = millis();
+        MIDI.sendNoteOn(note, velocity, 1);
+        voiceOn[1] = true;
+        break;
+      case 3:
+        voices[2].note = note;
+        voices[2].velocity = velocity;
+        voices[2].timeOn = millis();
+        MIDI.sendNoteOn(note, velocity, 1);
+        voiceOn[2] = true;
+        break;
+      case 4:
+        voices[3].note = note;
+        voices[3].velocity = velocity;
+        voices[3].timeOn = millis();
+        MIDI.sendNoteOn(note, velocity, 1);
+        voiceOn[3] = true;
+        break;
+      case 5:
+        voices[4].note = note;
+        voices[4].velocity = velocity;
+        voices[4].timeOn = millis();
+        MIDI.sendNoteOn(note, velocity, 1);
+        voiceOn[4] = true;
+        break;
+      case 6:
+        voices[5].note = note;
+        voices[5].velocity = velocity;
+        voices[5].timeOn = millis();
+        MIDI.sendNoteOn(note, velocity, 1);
+        voiceOn[5] = true;
+        break;
+    }
+}
+
+void DinHandleNoteOff(byte channel, byte note, byte velocity) {
+    switch (getVoiceNo(note)) {
+      case 1:
+        MIDI.sendNoteOff(note, velocity, 1);
+        voices[0].note = -1;
+        voiceOn[0] = false;
+        break;
+      case 2:
+        MIDI.sendNoteOff(note, velocity, 1);
+        voices[1].note = -1;
+        voiceOn[1] = false;
+        break;
+      case 3:
+        MIDI.sendNoteOff(note, velocity, 1);
+        voices[2].note = -1;
+        voiceOn[2] = false;
+        break;
+      case 4:
+        MIDI.sendNoteOff(note, velocity, 1);
+        voices[3].note = -1;
+        voiceOn[3] = false;
+        break;
+      case 5:
+        MIDI.sendNoteOff(note, velocity, 1);
+        voices[4].note = -1;
+        voiceOn[4] = false;
+        break;
+      case 6:
+        MIDI.sendNoteOff(note, velocity, 1);
+        voices[5].note = -1;
+        voiceOn[5] = false;
+        break;
+    }
+}
+
+int getVoiceNo(int note) {
+  voiceToReturn = -1;       //Initialise to 'null'
+  earliestTime = millis();  //Initialise to now
+  if (note == -1) {
+    //NoteOn() - Get the oldest free voice (recent voices may be still on release stage)
+    for (int i = 0; i < NO_OF_VOICES; i++) {
+      if (voices[i].note == -1) {
+        if (voices[i].timeOn < earliestTime) {
+          earliestTime = voices[i].timeOn;
+          voiceToReturn = i;
+        }
+      }
+    }
+    if (voiceToReturn == -1) {
+      //No free voices, need to steal oldest sounding voice
+      earliestTime = millis();  //Reinitialise
+      for (int i = 0; i < NO_OF_VOICES; i++) {
+        if (voices[i].timeOn < earliestTime) {
+          earliestTime = voices[i].timeOn;
+          voiceToReturn = i;
+        }
+      }
+    }
+    return voiceToReturn + 1;
+  } else {
+    //NoteOff() - Get voice number from note
+    for (int i = 0; i < NO_OF_VOICES; i++) {
+      if (voices[i].note == note) {
+        return i + 1;
+      }
+    }
+  }
+  //Shouldn't get here, return voice 1
+  return 1;
 }
 
 void allNotesOff() {
@@ -1344,6 +1487,7 @@ void writeDemux() {
       break;
     case 4:
       analogWrite(A21, int(osc2Detune));
+      //Serial.println(osc2Detune);
       break;
     case 5:
       analogWrite(A21, int(noiseLevel / 1.57));
@@ -1374,6 +1518,7 @@ void writeDemux() {
       break;
     case 14:
       analogWrite(A21, int(osc2PW));
+      //Serial.println(osc2PW);
       break;
     case 15:
       analogWrite(A21, int(modWheelLevel / 1.57));

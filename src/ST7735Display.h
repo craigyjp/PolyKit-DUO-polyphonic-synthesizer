@@ -38,7 +38,6 @@ char * currentSettingsValue = "";
 int currentSettingsPart = SETTINGS;
 int paramType = PARAMETER;
 
-boolean voiceOn[NO_OF_VOICES] = {false};
 boolean MIDIClkSignal = false;
 
 unsigned long timer = 0;
