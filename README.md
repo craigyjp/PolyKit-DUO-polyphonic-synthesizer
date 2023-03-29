@@ -21,15 +21,12 @@ This repository contains my versions of the filter/adsr/lfo with added velocity,
 - Velocity sensitivity for filters and amplifiers.
 - Analogue chorus similar to Juno 60.
 - 999 memory locations to store patches.
-- MIDI in/out/thru - channels 1-10 only.
+- MIDI in/out/thru.
 
 - How it sounds...
 
 https://youtu.be/yFFuoJo9930
 
-## Things to fix/improve
-
-- MIDI channel should be set by the programmer, currently the midi router on the rear can change the midi channel.
 
 ## The source of the inspiration for these modifications and acknowledgements
 
@@ -48,7 +45,5 @@ https://github.com/freddie-renyard
 https://github.com/craigyjp/pico-dco
 
 https://github.com/craigyjp/Pico-DCO-DAC
-
-https://github.com/craigyjp/3x3-Midi-Merge-Arduino-Mega
 
 TC Electronics June-60 Chorus
